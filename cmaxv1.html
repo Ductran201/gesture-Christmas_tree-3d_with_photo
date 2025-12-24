@@ -561,9 +561,8 @@
 
         function setupPostProcessing() {
             const renderScene = new RenderPass(scene, camera);
-            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.0, 0.4, 0.85);
-            // Raise threshold and lower strength to reduce bloom/glare on photos
-            bloomPass.threshold = 0.75; bloomPass.strength = 0.35; bloomPass.radius = 0.35;
+            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+            bloomPass.threshold = 0.65; bloomPass.strength = 0.5; bloomPass.radius = 0.4;
             composer = new EffectComposer(renderer);
             composer.addPass(renderScene);
             composer.addPass(bloomPass);
@@ -772,8 +771,7 @@
 
         function addPhotoToScene(texture) {
             const frameGeo = new THREE.BoxGeometry(1.4, 1.4, 0.05);
-            // Reduce frame reflectivity to avoid bright flares affecting the photo
-            const frameMat = new THREE.MeshStandardMaterial({ color: CONFIG.colors.champagneGold, metalness: 0.8, roughness: 0.25, envMapIntensity: 1.0 });
+            const frameMat = new THREE.MeshStandardMaterial({ color: CONFIG.colors.champagneGold, metalness: 1.0, roughness: 0.1 });
             const frame = new THREE.Mesh(frameGeo, frameMat);
             let width = 1.2; let height = 1.2;
             if (texture.image) {
@@ -781,14 +779,7 @@
                 if (aspect > 1) height = width / aspect; else width = height * aspect;
             }
             const photoGeo = new THREE.PlaneGeometry(width, height);
-            // Ensure texture uses correct encoding and reduce contribution to tone-mapping/bloom
-            if (texture && texture.encoding !== undefined) texture.encoding = THREE.sRGBEncoding;
             const photoMat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
-            // Prevent the photo itself from being brightened by renderer tone mapping / bloom
-            photoMat.toneMapped = false;
-            // Slightly darken the photo as a global multiplier (1.0 = unchanged). Adjust if needed.
-            photoMat.color = new THREE.Color(0.92, 0.92, 0.92);
-            photoMat.needsUpdate = true;
             const photo = new THREE.Mesh(photoGeo, photoMat);
             photo.position.z = 0.04;
             const group = new THREE.Group();
