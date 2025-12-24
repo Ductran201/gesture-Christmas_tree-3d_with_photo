@@ -379,7 +379,15 @@
             camera: { z: 50 },
             preload: {
                 autoScanLocal: true,
-                scanCount: 200, 
+                // If you want to load from a local folder (relative to this HTML file),
+                // set useLocalFolder to true and localFolder to the folder path.
+                // Example: localFolder: './photo' will load ./photo/image1.jpg, image2.jpg ...
+                useLocalFolder: true,
+                localFolder: './photo',
+                // Optional explicit list of filenames (relative to localFolder). If provided,
+                // these files will be loaded instead of the auto-index scan.
+                localFiles: [],
+                scanCount: 200,
                 images: []
             }
         };
@@ -807,12 +815,35 @@
 // --> 
         function loadPredefinedImages() {
             const loader = new THREE.TextureLoader();
+            // Load explicit localFiles first (if provided)
+            if (CONFIG.preload.useLocalFolder && Array.isArray(CONFIG.preload.localFiles) && CONFIG.preload.localFiles.length) {
+                CONFIG.preload.localFiles.forEach(fn => {
+                    const url = CONFIG.preload.localFolder.replace(/\/$/, '') + '/' + fn;
+                    loader.load(url, (t) => { t.colorSpace = THREE.SRGBColorSpace; addPhotoToScene(t); }, undefined, () => {});
+                });
+                return;
+            }
+
+            // If configured to load from a local folder by indexing (image1.jpg, image2.jpg, ...)
+            if (CONFIG.preload.useLocalFolder) {
+                for (let i = 1; i <= CONFIG.preload.scanCount; i++) {
+                    const base = CONFIG.preload.localFolder.replace(/\/$/, '') + `/image${i}`;
+                    const pathJpg = `${base}.jpg`;
+                    const pathPng = `${base}.png`;
+                    loader.load(pathJpg, (t) => { t.colorSpace = THREE.SRGBColorSpace; addPhotoToScene(t); }, undefined, () => {
+                        loader.load(pathPng, (t) => { t.colorSpace = THREE.SRGBColorSpace; addPhotoToScene(t); }, undefined, () => {} );
+                    });
+                }
+                return;
+            }
+
+            // Fallback: original auto-scan (images folder with (i).jpg naming)
             if (CONFIG.preload.autoScanLocal) {
                 for (let i = 1; i <= CONFIG.preload.scanCount; i++) {
                     const pathJpg = `./images/(${i}).jpg`;
                     const pathPng = `./images/(${i}).png`;
                     loader.load(pathJpg, (t) => { t.colorSpace = THREE.SRGBColorSpace; addPhotoToScene(t); }, undefined, () => {
-                             loader.load(pathPng, (t) => { t.colorSpace = THREE.SRGBColorSpace; addPhotoToScene(t); }, undefined, () => {} );
+                        loader.load(pathPng, (t) => { t.colorSpace = THREE.SRGBColorSpace; addPhotoToScene(t); }, undefined, () => {} );
                     });
                 }
             }
